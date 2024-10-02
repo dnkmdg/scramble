@@ -63,6 +63,8 @@ class ScrambleTest extends TestCase
             ->and($routes[1]->methods)->toBe(['GET', 'HEAD']);
     }
 
+    
+
     /** @test */
     #[DefineEnvironment('registerCustomPathApi')]
     #[DefineRoute('registerCustomNewsletterApiRoutes')]

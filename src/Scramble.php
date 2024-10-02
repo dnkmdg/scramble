@@ -16,6 +16,9 @@ use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use LogicException;
+use Spatie\TypeScriptTransformer\Actions\ReplaceSymbolsInCollectionAction;
+use Spatie\TypeScriptTransformer\TypeScriptTransformer;
+use Spatie\TypeScriptTransformer\TypeScriptTransformerConfig;
 
 class Scramble
 {
@@ -173,6 +176,28 @@ class Scramble
             $config = static::getGeneratorConfig($api);
 
             return response()->json($generator($config), options: JSON_PRETTY_PRINT);
+        })
+            ->middleware($config->get('middleware', [RestrictedDocsAccess::class]));
+    }
+
+    public static function registerTypescriptTypesRoute(string $path, string $api = 'default'): Route
+    {
+        $config = static::getGeneratorConfig($api);
+
+        return RouteFacade::get($path, function (Generator $generator) {
+            $tsconfig = app()->get(TypeScriptTransformerConfig::class);
+
+            $transformer = new TypeScriptTransformer($tsconfig);
+            $collection = $transformer->transform();
+
+            $writer = $tsconfig->getWriter();
+
+            (new ReplaceSymbolsInCollectionAction)->execute(
+                $collection,
+                $writer->replacesSymbolsWithFullyQualifiedIdentifiers()
+            );
+
+            return response($writer->format($collection), 200, ['Content-Type' => 'text/plain']);
         })
             ->middleware($config->get('middleware', [RestrictedDocsAccess::class]));
     }
